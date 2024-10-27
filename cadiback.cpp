@@ -25,22 +25,22 @@ namespace CadiBack {
 
 // Verbosity level: -1=quiet, 0=default, 1=verbose, INT_MAX=logging.
 
-int verbosity;
+int verbosity = 0;
 std::vector<int> backbones_found;
 
 // Checker solver to check that backbones are really back-bones, enabled by
 // '-c' or '--check' (and quite expensive but useful for debugging).
 //
-const char *check;
+const char *check = nullptr;
 CaDiCaL::Solver *checker;
 
 // Force writing to CNF alike output file.
 //
-const char *force;
+const char *force = nullptr;
 
 // Print backbones by default. Otherwise only produce statistics.
 //
-const char *no_print;
+const char *no_print = nullptr;
 
 // Disable by default  printing those 'c <character> ...' lines
 // in the solver.  If enabled is useful to see what is going on.
@@ -49,15 +49,15 @@ bool report = false;
 
 // From command line option '-s'.
 //
-bool always_print_statistics;
+bool always_print_statistics = false;
 
 // Use activation literals instead of 'constrain' API call.
 //
-const char *no_constrain;
+const char *no_constrain = nullptr;
 
 // Do not filter candidates by obtained models.
 //
-const char *no_filter;
+const char *no_filter = nullptr;
 
 #ifndef NFLIP
 
@@ -67,37 +67,37 @@ const char *no_filter;
 // 'flippable' function only checks this and 'flip' actually does it.
 // We can use both to remove backbone candidates.
 //
-const char *no_flip;     // No use of flippable information.
-const char *really_flip; // Also actually flip flippable.
+const char *no_flip = nullptr;     // No use of flippable information.
+const char *really_flip = nullptr; // Also actually flip flippable.
 
 #endif
 
 // The solver can give back information about root-level fixed literals
 // which can cheaply be used to remove candidates or determine backbones.
 //
-const char *no_fixed;
+const char *no_fixed = nullptr;
 
 // Disable preprocessing and inprocessing.
 //
-const char *no_inprocessing;
+const char *no_inprocessing = nullptr;
 
 // Force the SAT solver to assign decisions to a value which would make the
 // remaining backbone candidate literals false.  This is a very natural idea
 // but actual had negative effects and thus is now disabled by default.
 //
-bool set_phase;
+bool set_phase = false;
 
 // Try each candidate after each other with a single assumption, i.e., do
 // not use the 'constrain' optimization.
 //
-const char *one_by_one;
+const char *one_by_one = nullptr;
 
 // If we use constraints ('one-by-one' is off) then we might want to limit
 // the size of the constraints.  On success (solver returns 'unsatisfiable')
 // we increase the constraint size by factor of 10 and on failure (solver
 // finds a model) we reset constraint size to '1'.
 //
-const char *chunking;
+const char *chunking = nullptr;
 
 // If the following option is enabled we try to compute cores as in
 // 'MiniBones', which assumes the conjunction of the complement of
@@ -111,7 +111,7 @@ const char *chunking;
 // the set of assumptions becomes empty, in which case we fall back
 // to the iterative algorithms.
 //
-const char *cores;
+const char *cores = nullptr;
 
 // If this option is enable CadiBack will initially run our algorithm KB3 to
 // search for Backbones that can be identified in the BIG (Binary
@@ -120,24 +120,24 @@ const char *cores;
 // anytime-context this option usally doesn't yield any benefit, however it
 // also usually doesn't cost much. See our FMCAD'23 paper on Big Backbones
 // for a description of the algorithm and experimental resutls.
-const char *big;
+const char *big = nullptr;
 
 // Applying ELS (Equivalent literal substitution) turns the BIG into a DAG.
 // This isn't necessary for KB3 but can increase performance.
-const char *big_no_els;
+const char *big_no_els = nullptr;
 
 // KB3 probes individual literals by propagating them in the BIG. To find
 // all Backbones in the BIG it is sufficent to only probe the roots of the
 // BIG. This can however have detrimental effects for KB3 and is disabled by
 // default. This option requires ELS.
-const char *big_roots;
+const char *big_roots = nullptr;
 
 int vars;        // The number of variables in the CNF.
-int *fixed;      // The resulting fixed backbone literals.
-int *candidates; // The backbone candidates (if non-zero).
-int *constraint; // Literals to constrain.
-int *core;       // Remaining core literals.
-char *marked;    // Flag used for ELS and BIG propagation.
+int *fixed = nullptr;      // The resulting fixed backbone literals.
+int *candidates = nullptr; // The backbone candidates (if non-zero).
+int *constraint = nullptr; // Literals to constrain.
+int *core = nullptr;       // Remaining core literals.
+char *marked = nullptr;    // Flag used for ELS and BIG propagation.
 
 // Here we have the files on which the tool operators. The first file
 // argument is the '<dimacs>' if specified. Otherwise we will use '<stdin>'.
@@ -156,28 +156,28 @@ struct {
 // variable such that it can be accessed by the signal handler to print
 // statistics even if execution is interrupted or an error occurs.
 //
-CaDiCaL::Solver *solver;
+CaDiCaL::Solver *solver = nullptr;
 
 // Some statistics are collected here.
 
 struct {
-  size_t backbones;     // Number of backbones found.
-  size_t dropped;       // Number of non-backbones found.
-  size_t filtered;      // Number of candidates with two models.
-  size_t checked;       // How often checked model or backbone.
-  size_t fixed;         // Number of fixed variables.
-  size_t failed;        // Failed literals during core based approach.
-  size_t core;          // Set by core based approach.
-  size_t big_backbones; // Number of backbones found.
+  size_t backbones = 0;     // Number of backbones found.
+  size_t dropped = 0;       // Number of non-backbones found.
+  size_t filtered = 0;      // Number of candidates with two models.
+  size_t checked = 0;       // How often checked model or backbone.
+  size_t fixed = 0;         // Number of fixed variables.
+  size_t failed = 0;        // Failed literals during core based approach.
+  size_t core = 0;          // Set by core based approach.
+  size_t big_backbones = 0; // Number of backbones found.
   struct {
-    size_t sat;     // Calls with result SAT to SAT solver.
-    size_t unsat;   // Calls with result UNSAT to SAT solver.
-    size_t unknown; // Interrupted solver calls.
-    size_t total;   // Calls to SAT solver.
+    size_t sat = 0;     // Calls with result SAT to SAT solver.
+    size_t unsat = 0;   // Calls with result UNSAT to SAT solver.
+    size_t unknown = 0; // Interrupted solver calls.
+    size_t total = 0;   // Calls to SAT solver.
   } calls;
 #ifndef NFLIP
-  size_t flipped;   // How often 'solver->flip (lit)' succeeded.
-  size_t flippable; // How often 'solver->flip (lit)' succeeded.
+  size_t flipped = 0;   // How often 'solver->flip (lit)' succeeded.
+  size_t flippable = 0; // How often 'solver->flip (lit)' succeeded.
 #endif
 } statistics;
 
