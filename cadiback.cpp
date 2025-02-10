@@ -1059,7 +1059,7 @@ int doit (const std::vector<int>& cnf,
     const int _verb,
     std::vector<int>& drop_cands,
     std::vector<int>& ret_backbone) {
-  verbosity = _verb-2;
+  verbosity = _verb-1;
   msg ("CadiBack BackBone Extractor");
   msg ("Copyright (c) 2023 Armin Biere University of Freiburg");
   msg ("Version " VERSION " " GITID);
@@ -1080,9 +1080,9 @@ int doit (const std::vector<int>& cnf,
   solver = new CaDiCaL::Solver ();
   if (verbosity < 0)
     solver->set ("quiet", 1);
-  else if (verbosity > 1)
+  else if (verbosity > 2)
     solver->set ("verbose", verbosity - 2);
-  if (report || verbosity > 1)
+  if (report || verbosity > 2)
     solver->set ("report", 1);
 
   int res = 0;
