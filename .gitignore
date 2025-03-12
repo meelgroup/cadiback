@@ -2,3 +2,6 @@ cadiback
 cadiback.o
 config.hpp
 makefile
+
+/.ccls-cache
+/result
