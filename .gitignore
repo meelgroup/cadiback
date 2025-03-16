@@ -5,3 +5,6 @@ makefile
 
 /.ccls-cache
 /result
+.cache
+libcadi*
+perf.data*

@@ -3,7 +3,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     cadical = {
-      url = "github:itepastra/cadical/add-flake";
+      url = "github:meelgroup/cadical/add_dynamic_lib";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
