@@ -8,3 +8,4 @@ makefile
 .cache
 libcadi*
 perf.data*
+compile_commands.json
