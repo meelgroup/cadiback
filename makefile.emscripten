@@ -1,5 +1,5 @@
 COMPILE=/usr/lib/emscripten/emcc -fPIC -Wall -O3 -std=c++17 -DNDEBUG
-LINK=ar
+LINK=/usr/lib/emscripten/emar
 all: libcadiback.a libcadiback.so
 libcadiback.a: cadiback.o ../cadical/build/libcadical.a makefile
 	$(LINK) rcs $@ cadiback.o

@@ -75,6 +75,13 @@ else
   COMPILE="$CXX -fPIC -W"
 fi
 
+if [ x"$AR" = x ]
+then
+  COMPILE="AR"
+else
+  COMPILE="$AR"
+fi
+
 if [ $debug = yes ]
 then
   COMPILE="$COMPILE -g -ggdb3"
@@ -87,6 +94,6 @@ fi
 msg "Compiling with '$COMPILE'"
 
 rm -f makefile
-sed -e "s/@COMPILE@/$COMPILE/" makefile.in > makefile
+sed -e "s/@COMPILE@/$COMPILE/" makefile.in | sed -e "s/@LINK@/$LINK/" > makefile
 
 msg "Generated 'makefile' (run 'make' to compile)"
