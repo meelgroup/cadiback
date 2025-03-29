@@ -77,9 +77,9 @@ fi
 
 if [ x"$AR" = x ]
 then
-  COMPILE="AR"
+  LINK="ar"
 else
-  COMPILE="$AR"
+  LINK="$AR"
 fi
 
 if [ $debug = yes ]
