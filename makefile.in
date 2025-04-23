@@ -13,6 +13,6 @@ clean:
 	rm -f cadiback.o config.hpp cadiback makefile test/*log test/*err
 install:
 	cp libcadiback.so /usr/lib/
-	cp cadiback.h /usr/include/
+	cp include/cadiback.h /usr/include/
 
 .PHONY: all clean format test
