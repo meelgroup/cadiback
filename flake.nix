@@ -35,7 +35,7 @@
               ./configure
               ./makefile.in
               ./test
-              ./cadiback.h
+              ./include/cadiback.h
               ./cadiback.cpp
               ./generate
               ./VERSION
