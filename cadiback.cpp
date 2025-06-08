@@ -1055,10 +1055,26 @@ void big_backbone (const std::vector<int> &f,
   }
 }
 
+class MyIter : public CaDiCaL::ClauseIterator {
+  public:
+  MyIter(std::vector<int>& _cls) : cls(_cls) {}
+  virtual ~MyIter () override {}
+  virtual bool clause (const std::vector<int>& cl) override {
+    if (cl.size() == 2) {
+      cls.push_back (cl[0]);
+      cls.push_back (cl[1]);
+      cls.push_back(0);
+    }
+    return true;
+  }
+  std::vector<int>& cls;
+};
+
 int doit (const std::vector<int>& cnf,
     const int _verb,
     std::vector<int>& drop_cands,
-    std::vector<int>& ret_backbone) {
+    std::vector<int>& ret_backbone,
+    std::vector<int>& ret_red_cls) {
   verbosity = _verb-1;
   msg ("CadiBack BackBone Extractor");
   msg ("Copyright (c) 2023 Armin Biere University of Freiburg");
@@ -1604,6 +1620,18 @@ int doit (const std::vector<int>& cnf,
 
     print_statistics ();
     dbg ("deleting solver");
+  }
+  MyIter iter (ret_red_cls);
+  solver->traverse_red_clauses(iter);
+  if (verbosity >= 4) {
+    std::cout << "c o red bin cls below" << std::endl;
+    for(const auto& l: ret_red_cls) {
+      if (l == 0) {
+        std::cout << "0" << std::endl;
+        continue;
+      }
+      std::cout << l << " ";
+    }
   }
 
   delete solver;
