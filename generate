@@ -4,7 +4,7 @@ die () {
   exit 1
 }
 [ -f VERSION ] || die "could not find 'VERSION' file"
-[ `git rev-parse --is-inside-work-tree` ] || die "not inside a git repo"
+[ `git rev-parse --is-inside-work-tree > /dev/null 2>&1;` ] || die "not inside a git repo"
 [ -f makefile ] || die "could not find 'makefile'"
 VERSION="`cat VERSION`"
 GITID="`git show|head -1|awk '{print $2}'`"
