@@ -189,6 +189,7 @@ double big_search_time, big_read_time, big_els_time, big_check_time,
     big_extension_time;
 volatile double *started, start_time;
 double cadiback_start;
+bool is_unsat = false;
 
 // Declaring these with '__attribute__ ...' gives nice warnings.
 
@@ -1074,7 +1075,8 @@ int doit (const std::vector<int>& cnf,
     const int _verb,
     std::vector<int>& drop_cands,
     std::vector<int>& ret_backbone,
-    std::vector<int>& ret_red_cls) {
+    std::vector<int>& ret_red_cls,
+    std::vector<std::pair<int, int>>& ret_eqlits) {
   verbosity = _verb-1;
   msg ("CadiBack BackBone Extractor");
   msg ("Copyright (c) 2023 Armin Biere University of Freiburg");
@@ -1615,25 +1617,29 @@ int doit (const std::vector<int>& cnf,
       }
     } else {
       assert (res == 20);
+      is_unsat = true;
       /* printf ("s UNSATISFIABLE\n"); */
     }
 
     print_statistics ();
     dbg ("deleting solver");
   }
-  MyIter iter (ret_red_cls);
-  solver->traverse_red_clauses(iter);
-  if (verbosity >= 4) {
-    std::cout << "c o red bin cls below" << std::endl;
-    for(const auto& l: ret_red_cls) {
-      if (l == 0) {
-        std::cout << "0" << std::endl;
-        continue;
-      }
-      std::cout << l << " ";
-    }
-  }
 
+  if (!is_unsat) {
+    MyIter iter (ret_red_cls);
+    solver->traverse_red_clauses(iter);
+    if (verbosity >= 4) {
+      std::cout << "c o red bin cls below" << std::endl;
+      for(const auto& l: ret_red_cls) {
+        if (l == 0) {
+          std::cout << "0" << std::endl;
+          continue;
+        }
+        std::cout << l << " ";
+      }
+    }
+    ret_eqlits = solver->get_eqiv_lits();
+  }
   delete solver;
 
   line ();
