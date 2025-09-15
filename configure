@@ -94,6 +94,6 @@ fi
 msg "Compiling with '$COMPILE'"
 
 rm -f makefile
-sed -e "s/@COMPILE@/$COMPILE/" makefile.in | sed -e "s/@LINK@/$LINK/" > makefile
+sed -e "s#@COMPILE@#$COMPILE#" makefile.in | sed -e "s/@LINK@/$LINK/" > makefile
 
 msg "Generated 'makefile' (run 'make' to compile)"
