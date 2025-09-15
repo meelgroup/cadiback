@@ -50,7 +50,7 @@
               --replace-fail "/usr/" "$out/" \
               --replace-fail "../cadical" "${cadical}"
             substituteInPlace generate \
-              --replace-fail ${lib.escapeShellArg ''[ -d .git ] || die "could not find '.git' directory"''} "" \
+              --replace-fail ${lib.escapeShellArg ''[ `git rev-parse --is-inside-work-tree > /dev/null 2>&1;` ] || die "not inside a git repo"''} "" \
               --replace-fail ${lib.escapeShellArg "`git show|head -1|awk '{print $2}'`"} ${nixpkgs.rev}
             cat generate
           '';
