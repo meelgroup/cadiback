@@ -70,16 +70,23 @@ fi
 
 if [ x"$CXX" = x ]
 then
-  COMPILE="g++ -Wall"
+  COMPILE="g++ -fPIC -Wall"
 else
-  COMPILE="$CXX -W"
+  COMPILE="$CXX -fPIC -W"
+fi
+
+if [ x"$AR" = x ]
+then
+  LINK="ar"
+else
+  LINK="$AR"
 fi
 
 if [ $debug = yes ]
 then
   COMPILE="$COMPILE -g -ggdb3"
 else
-  COMPILE="$COMPILE -O3 -DNDEBUG"
+  COMPILE="$COMPILE -O3 -std=c++17 -DNDEBUG"
 fi
 
 [ $flip = no ] && COMPILE="$COMPILE -DNFLIP"
@@ -87,6 +94,6 @@ fi
 msg "Compiling with '$COMPILE'"
 
 rm -f makefile
-sed -e "s#@COMPILE@#$COMPILE#" makefile.in > makefile
+sed -e "s#@COMPILE@#$COMPILE#" makefile.in | sed -e "s/@LINK@/$LINK/" > makefile
 
 msg "Generated 'makefile' (run 'make' to compile)"
