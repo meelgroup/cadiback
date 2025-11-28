@@ -23,24 +23,73 @@
 #include "config.hpp"
 namespace CadiBack {
 
-// Verbosity level: -1=quiet, 0=default, 1=verbose, INT_MAX=logging.
+int ind (int i) {
+  assert (i);
+  return (abs (i) << 1) - 1 - (i > 0);
+}
+int lit (int i) { return ((i >> 1) + 1) * ((i & 1) ? -1 : 1); }
+int var (int i) { return (i >> 1) + 1; }
+int neg (int i) { return i ^ 1; }
 
+class MyIter : public CaDiCaL::ClauseIterator {
+  public:
+  MyIter(std::vector<int>& _cls) : cls(_cls) {}
+  virtual ~MyIter () override {}
+  virtual bool clause (const std::vector<int>& cl) override {
+    if (cl.size() == 2) {
+      cls.push_back (cl[0]);
+      cls.push_back (cl[1]);
+      cls.push_back(0);
+    }
+    return true;
+  }
+  std::vector<int>& cls;
+};
+
+class BigDegreeIterator : public CaDiCaL::ClauseIterator {
+public:
+  int num_edges = 0;
+  std::vector<int> &f;
+  BigDegreeIterator (std::vector<int> &f) : f (f) {}
+  bool clause (const std::vector<int> &c) {
+    if (c.size () != 2)
+      return true;
+    num_edges += 2;
+    ++f[neg (ind (c[0])) + 2];
+    ++f[neg (ind (c[1])) + 2];
+    return true;
+  }
+};
+
+class BigEdgeIterator : public CaDiCaL::ClauseIterator {
+public:
+  std::vector<int> &f, &e;
+  BigEdgeIterator (std::vector<int> &f, std::vector<int> &e)
+      : f (f), e (e) {}
+  bool clause (const std::vector<int> &c) {
+    if (c.size () != 2)
+      return true;
+    const int u = ind (c[0]);
+    const int v = ind (c[1]);
+    e[f[neg (u) + 1]++] = v;
+    e[f[neg (v) + 1]++] = u;
+    return true;
+  }
+};
+
+class CadiBackInt {
+
+// Verbosity level: -1=quiet, 0=default, 1=verbose, INT_MAX=logging.
 int verbosity = 0;
+
+// backbone literals found
 std::vector<int> backbones_found;
 
 // Checker solver to check that backbones are really back-bones, enabled by
 // '-c' or '--check' (and quite expensive but useful for debugging).
 //
 const char *check = nullptr;
-CaDiCaL::Solver *checker;
-
-// Force writing to CNF alike output file.
-//
-const char *force = nullptr;
-
-// Print backbones by default. Otherwise only produce statistics.
-//
-const char *no_print = nullptr;
+CaDiCaL::Solver *checker = nullptr;
 
 // Disable by default  printing those 'c <character> ...' lines
 // in the solver.  If enabled is useful to see what is going on.
@@ -76,10 +125,6 @@ const char *really_flip = nullptr; // Also actually flip flippable.
 // which can cheaply be used to remove candidates or determine backbones.
 //
 const char *no_fixed = nullptr;
-
-// Disable preprocessing and inprocessing.
-//
-const char *no_inprocessing = nullptr;
 
 // Force the SAT solver to assign decisions to a value which would make the
 // remaining backbone candidate literals false.  This is a very natural idea
@@ -132,7 +177,7 @@ const char *big_no_els = nullptr;
 // default. This option requires ELS.
 const char *big_roots = nullptr;
 
-int vars;        // The number of variables in the CNF.
+int vars = 0;        // The number of variables in the CNF.
 int *fixed = nullptr;      // The resulting fixed backbone literals.
 int *candidates = nullptr; // The backbone candidates (if non-zero).
 int *constraint = nullptr; // Literals to constrain.
@@ -146,9 +191,9 @@ char *marked = nullptr;    // Flag used for ELS and BIG propagation.
 
 struct {
   struct {
-    bool close;
-    FILE *file;
-    const char *path;
+    bool close = false;
+    FILE *file = nullptr;
+    const char *path = nullptr;
   } dimacs, backbone;
 } files;
 
@@ -182,25 +227,26 @@ struct {
 } statistics;
 
 // Some time profiling information is collected here.
-
-double first_time, sat_time, unsat_time, solving_time, unknown_time;
-double satmax_time, unsatmax_time, flip_time, check_time;
-double big_search_time, big_read_time, big_els_time, big_check_time,
-    big_extension_time;
-volatile double *started, start_time;
-double cadiback_start;
+double first_time = 0;
+double sat_time = 0;
+double unsat_time = 0;
+double solving_time = 0;
+double unknown_time = 0;
+double satmax_time = 0;
+double unsatmax_time = 0;
+double flip_time = 0;
+double check_time = 0;
+double big_search_time = 0;
+double big_read_time = 0;
+double big_els_time = 0;
+double big_check_time = 0;
+double big_extension_time = 0;
+double *started = nullptr;
+double start_time = 0;
+double cadiback_start = 0;
 bool is_unsat = false;
 
-// Declaring these with '__attribute__ ...' gives nice warnings.
-
-void die (const char *, ...) __attribute__ ((format (printf, 1, 2)));
-void msg (const char *, ...) __attribute__ ((format (printf, 1, 2)));
-
-void fatal (const char *, ...)
-    __attribute__ ((format (printf, 1, 2)));
-
 // Actual message printing code starts here.
-
 void msg (const char *fmt, ...) {
   if (verbosity < 0)
     return;
@@ -279,7 +325,7 @@ void print_statistics () {
     return;
   solver->prefix ("c o ");
   double total_time = time ();
-  volatile double *timer = started;
+  double *timer = started;
   if (started) {
     double delta = stop_timer ();
     if (timer == &solving_time) {
@@ -627,10 +673,6 @@ bool backbone_variable (int idx) {
   fixed[idx] = lit;
   candidates[idx] = 0;
   backbones_found.push_back(lit);
-  /* if (!no_print) { */
-  /*   fprintf (files.backbone.file, "b %d\n", lit); */
-  /*   fflush (files.backbone.file); */
-  /* } */
   if (checker)
     check_backbone (lit);
   assert (statistics.backbones < (size_t) vars);
@@ -714,44 +756,6 @@ bool looks_like_a_dimacs_file (const char *path) {
          match_until_dot (suffix, "cnf");
 }
 
-int ind (int i) {
-  assert (i);
-  return (abs (i) << 1) - 1 - (i > 0);
-}
-int lit (int i) { return ((i >> 1) + 1) * ((i & 1) ? -1 : 1); }
-int var (int i) { return (i >> 1) + 1; }
-int neg (int i) { return i ^ 1; }
-
-class BigDegreeIterator : public CaDiCaL::ClauseIterator {
-public:
-  int num_edges = 0;
-  std::vector<int> &f;
-  BigDegreeIterator (std::vector<int> &f) : f (f) {}
-  bool clause (const std::vector<int> &c) {
-    if (c.size () != 2)
-      return true;
-    num_edges += 2;
-    ++f[neg (ind (c[0])) + 2];
-    ++f[neg (ind (c[1])) + 2];
-    return true;
-  }
-};
-
-class BigEdgeIterator : public CaDiCaL::ClauseIterator {
-public:
-  std::vector<int> &f, &e;
-  BigEdgeIterator (std::vector<int> &f, std::vector<int> &e)
-      : f (f), e (e) {}
-  bool clause (const std::vector<int> &c) {
-    if (c.size () != 2)
-      return true;
-    const int u = ind (c[0]);
-    const int v = ind (c[1]);
-    e[f[neg (u) + 1]++] = v;
-    e[f[neg (v) + 1]++] = u;
-    return true;
-  }
-};
 
 void big_extract (int num_nodes, std::vector<int> &f,
                          std::vector<int> &e) {
@@ -910,10 +914,6 @@ bool big_backbone_node (int node) {
   if (!literal)
     return false;
   fixed[idx] = literal;
-  /* if (!no_print) { */
-  /*   fprintf (files.backbone.file, "b %d\n", literal); */
-  /*   fflush (files.backbone.file); */
-  /* } */
   solver->add (literal);
   solver->add (0);
   assert (statistics.backbones < (size_t) vars);
@@ -1056,21 +1056,7 @@ void big_backbone (const std::vector<int> &f,
   }
 }
 
-class MyIter : public CaDiCaL::ClauseIterator {
-  public:
-  MyIter(std::vector<int>& _cls) : cls(_cls) {}
-  virtual ~MyIter () override {}
-  virtual bool clause (const std::vector<int>& cl) override {
-    if (cl.size() == 2) {
-      cls.push_back (cl[0]);
-      cls.push_back (cl[1]);
-      cls.push_back(0);
-    }
-    return true;
-  }
-  std::vector<int>& cls;
-};
-
+public:
 int doit (const std::vector<int>& cnf,
     const int _verb,
     std::vector<int>& drop_cands,
@@ -1267,6 +1253,7 @@ int doit (const std::vector<int>& cnf,
           if (!drop_cands_set.count(idx)) {
             candidates[idx] = lit;
           } else {
+            statistics.dropped++;
             candidates[idx] = 0;
           }
           fixed[idx] = 0;
@@ -1553,21 +1540,6 @@ int doit (const std::vector<int>& cnf,
         }
       }
 
-      // All backbones found! So terminate the backbone list with 'b 0'.
-
-      /* if (!no_print) { */
-      /*   fprintf (files.backbone.file, "b 0\n"); */
-      /*   fflush (files.backbone.file); */
-      /* } */
-
-      // We only print 's SATISFIABLE' here which is supposed to indicate
-      // that the run completed.  Otherwise printing it before printing
-      // 'b' lines confuses scripts (and 'zummarize').
-
-      line ();
-      /* printf ("s SATISFIABLE\n"); */
-      fflush (stdout);
-
 #ifndef NDEBUG
 
       if (res == 10) {
@@ -1648,5 +1620,19 @@ int doit (const std::vector<int>& cnf,
   ret_backbone = backbones_found;
   return res;
 }
+
+};
+
+int doit (const std::vector<int>& cnf,
+    const int _verb,
+    std::vector<int>& drop_cands,
+    std::vector<int>& ret_backbone,
+    std::vector<int>& ret_red_cls,
+    std::vector<std::pair<int, int>>& ret_eqlits) {
+  CadiBackInt cb;
+  return cb.doit (cnf, _verb, drop_cands,
+      ret_backbone, ret_red_cls, ret_eqlits);
+}
+
 
 }
