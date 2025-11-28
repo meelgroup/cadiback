@@ -23,9 +23,66 @@
 #include "config.hpp"
 namespace CadiBack {
 
-// Verbosity level: -1=quiet, 0=default, 1=verbose, INT_MAX=logging.
+int ind (int i) {
+  assert (i);
+  return (abs (i) << 1) - 1 - (i > 0);
+}
+int lit (int i) { return ((i >> 1) + 1) * ((i & 1) ? -1 : 1); }
+int var (int i) { return (i >> 1) + 1; }
+int neg (int i) { return i ^ 1; }
 
+class MyIter : public CaDiCaL::ClauseIterator {
+  public:
+  MyIter(std::vector<int>& _cls) : cls(_cls) {}
+  virtual ~MyIter () override {}
+  virtual bool clause (const std::vector<int>& cl) override {
+    if (cl.size() == 2) {
+      cls.push_back (cl[0]);
+      cls.push_back (cl[1]);
+      cls.push_back(0);
+    }
+    return true;
+  }
+  std::vector<int>& cls;
+};
+
+class BigDegreeIterator : public CaDiCaL::ClauseIterator {
+public:
+  int num_edges = 0;
+  std::vector<int> &f;
+  BigDegreeIterator (std::vector<int> &f) : f (f) {}
+  bool clause (const std::vector<int> &c) {
+    if (c.size () != 2)
+      return true;
+    num_edges += 2;
+    ++f[neg (ind (c[0])) + 2];
+    ++f[neg (ind (c[1])) + 2];
+    return true;
+  }
+};
+
+class BigEdgeIterator : public CaDiCaL::ClauseIterator {
+public:
+  std::vector<int> &f, &e;
+  BigEdgeIterator (std::vector<int> &f, std::vector<int> &e)
+      : f (f), e (e) {}
+  bool clause (const std::vector<int> &c) {
+    if (c.size () != 2)
+      return true;
+    const int u = ind (c[0]);
+    const int v = ind (c[1]);
+    e[f[neg (u) + 1]++] = v;
+    e[f[neg (v) + 1]++] = u;
+    return true;
+  }
+};
+
+class CadiBackInt {
+
+// Verbosity level: -1=quiet, 0=default, 1=verbose, INT_MAX=logging.
 int verbosity = 0;
+
+// backbone literals found
 std::vector<int> backbones_found;
 
 // Checker solver to check that backbones are really back-bones, enabled by
@@ -193,11 +250,10 @@ bool is_unsat = false;
 
 // Declaring these with '__attribute__ ...' gives nice warnings.
 
-void die (const char *, ...) __attribute__ ((format (printf, 1, 2)));
-void msg (const char *, ...) __attribute__ ((format (printf, 1, 2)));
-
-void fatal (const char *, ...)
-    __attribute__ ((format (printf, 1, 2)));
+/* void die (const char *, ...) __attribute__ ((format (printf, 1, 2))); */
+/* void msg (const char *, ...) __attribute__ ((format (printf, 1, 2))); */
+/* void fatal (const char *, ...) */
+/*     __attribute__ ((format (printf, 1, 2))); */
 
 // Actual message printing code starts here.
 
@@ -714,44 +770,6 @@ bool looks_like_a_dimacs_file (const char *path) {
          match_until_dot (suffix, "cnf");
 }
 
-int ind (int i) {
-  assert (i);
-  return (abs (i) << 1) - 1 - (i > 0);
-}
-int lit (int i) { return ((i >> 1) + 1) * ((i & 1) ? -1 : 1); }
-int var (int i) { return (i >> 1) + 1; }
-int neg (int i) { return i ^ 1; }
-
-class BigDegreeIterator : public CaDiCaL::ClauseIterator {
-public:
-  int num_edges = 0;
-  std::vector<int> &f;
-  BigDegreeIterator (std::vector<int> &f) : f (f) {}
-  bool clause (const std::vector<int> &c) {
-    if (c.size () != 2)
-      return true;
-    num_edges += 2;
-    ++f[neg (ind (c[0])) + 2];
-    ++f[neg (ind (c[1])) + 2];
-    return true;
-  }
-};
-
-class BigEdgeIterator : public CaDiCaL::ClauseIterator {
-public:
-  std::vector<int> &f, &e;
-  BigEdgeIterator (std::vector<int> &f, std::vector<int> &e)
-      : f (f), e (e) {}
-  bool clause (const std::vector<int> &c) {
-    if (c.size () != 2)
-      return true;
-    const int u = ind (c[0]);
-    const int v = ind (c[1]);
-    e[f[neg (u) + 1]++] = v;
-    e[f[neg (v) + 1]++] = u;
-    return true;
-  }
-};
 
 void big_extract (int num_nodes, std::vector<int> &f,
                          std::vector<int> &e) {
@@ -1055,21 +1073,6 @@ void big_backbone (const std::vector<int> &f,
     tree.clear ();
   }
 }
-
-class MyIter : public CaDiCaL::ClauseIterator {
-  public:
-  MyIter(std::vector<int>& _cls) : cls(_cls) {}
-  virtual ~MyIter () override {}
-  virtual bool clause (const std::vector<int>& cl) override {
-    if (cl.size() == 2) {
-      cls.push_back (cl[0]);
-      cls.push_back (cl[1]);
-      cls.push_back(0);
-    }
-    return true;
-  }
-  std::vector<int>& cls;
-};
 
 int doit (const std::vector<int>& cnf,
     const int _verb,
@@ -1648,5 +1651,7 @@ int doit (const std::vector<int>& cnf,
   ret_backbone = backbones_found;
   return res;
 }
+
+};
 
 }

@@ -84,7 +84,7 @@ fi
 
 if [ $debug = yes ]
 then
-  COMPILE="$COMPILE -g -ggdb3"
+  COMPILE="$COMPILE -g -ggdb3 -std=c++17"
 else
   COMPILE="$COMPILE -O3 -std=c++17 -DNDEBUG"
 fi
