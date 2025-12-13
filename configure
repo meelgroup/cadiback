@@ -50,6 +50,7 @@ do
   case $1 in
     -h|--help) usage;;
     -g|--debug) debug=yes;;
+    -g|--release) release=yes;;
     --no-flip) flip=no;;
     *) die "invalid option '$1' (try '-h')";;
   esac
@@ -82,11 +83,14 @@ else
   LINK="$AR"
 fi
 
-if [ $debug = yes ]
+if [ $release = yes ]
 then
-  COMPILE="$COMPILE -g -ggdb3 -std=c++17"
+  COMPILE="$COMPILE -O3 -ggdb3 -std=c++17 -DNDEBUG"
+elif [ $debug = yes ]
+then
+  COMPILE="$COMPILE -O0 -ggdb3 -std=c++17"
 else
-  COMPILE="$COMPILE -O3 -std=c++17 -DNDEBUG"
+  COMPILE="$COMPILE -O3 -ggdb3 -std=c++17"
 fi
 
 [ $flip = no ] && COMPILE="$COMPILE -DNFLIP"
