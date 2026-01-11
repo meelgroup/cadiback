@@ -71,9 +71,9 @@ fi
 
 if [ x"$CXX" = x ]
 then
-  COMPILE="g++ -fPIC -Wall"
+  COMPILE="g++ -fPIC -Wall -fno-omit-frame-pointer"
 else
-  COMPILE="$CXX -fPIC -W"
+  COMPILE="$CXX -fPIC -fno-omit-frame-pointer -W"
 fi
 
 if [ x"$AR" = x ]
