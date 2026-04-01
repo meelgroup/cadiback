@@ -37,6 +37,7 @@
               ./test
               ./include/cadiback.h
               ./cadiback.cpp
+              ./main.cpp
               ./generate
               ./VERSION
             ];
@@ -62,6 +63,10 @@
           preInstall = ''
             mkdir -p $out/lib
             mkdir -p $out/include
+            mkdir -p $out/bin
+          '';
+          postInstall = ''
+            cp cadiback $out/bin/cadiback
           '';
         };
 
