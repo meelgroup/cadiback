@@ -31,7 +31,7 @@ jobs:
     - name: Build cadical
       run: |
         cd cadical
-        CXX="ccache g++" CXXFLAGS=-fPIC ./configure --competition
+        CXX="ccache g++" ./configure --competition -shared
         make -j$(nproc)
 
     - name: Build cadiback
