@@ -3,10 +3,19 @@ LINK=@LINK@
 all: libcadiback.a libcadiback.so cadiback
 libcadiback.a: cadiback.o ../cadical/build/libcadical.a makefile
 	$(LINK) rcs $@ cadiback.o
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+SHARED_FLAGS = -dynamiclib -install_name @rpath/libcadiback.so
+RPATH_ORIGIN = @loader_path
+else
+SHARED_FLAGS = -shared
+RPATH_ORIGIN = $$ORIGIN
+endif
+
 libcadiback.so: cadiback.o ../cadical/build/libcadical.so makefile
-	$(COMPILE) -shared -o $@ cadiback.o -L../cadical/build/ -lcadical -Wl,-rpath,'$$ORIGIN/../cadical/build'
+	$(COMPILE) $(SHARED_FLAGS) -o $@ cadiback.o -L../cadical/build/ -lcadical -Wl,-rpath,'$(RPATH_ORIGIN)/../cadical/build'
 cadiback: main.cpp libcadiback.a libcadiback.so makefile
-	$(COMPILE) -o $@ main.cpp -I./include -L. -lcadiback -Wl,-rpath,'$$ORIGIN'
+	$(COMPILE) -o $@ main.cpp -I./include -L. -lcadiback -Wl,-rpath,'$(RPATH_ORIGIN)'
 cadiback.o: cadiback.cpp config.hpp ../cadical/src/cadical.hpp makefile
 	$(COMPILE) -c $< -I../cadical/src
 config.hpp: generate VERSION makefile
