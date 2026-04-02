@@ -22,7 +22,7 @@ jobs:
     - name: Checkout cadical
       uses: actions/checkout@v4
       with:
-        repository: arminbiere/cadical
+        repository: meelgroup/cadical
         path: cadical
 
     - name: Set up ccache
