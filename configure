@@ -75,6 +75,7 @@ then
 else
   COMPILE="$CXX -fPIC -fno-omit-frame-pointer -W"
 fi
+[ x"$CXXFLAGS" != x ] && COMPILE="$COMPILE $CXXFLAGS"
 
 if [ x"$AR" = x ]
 then
