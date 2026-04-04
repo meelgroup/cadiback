@@ -1,6 +1,7 @@
-#!/usr/bin/env bash
-rm -rf libcadi.*
-rm -f compile_commands.json
-make clean
-CXXFLAGS=-fPIC ./configure --release
-bear -- make -j$(nproc)
+#!/bin/bash
+set -e
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \
+  -Dcadical_DIR=../cadical/build \
+  -DCMAKE_INSTALL_PREFIX="$(pwd)/build"
+cmake --build build -j$(nproc)
+cmake --install build
