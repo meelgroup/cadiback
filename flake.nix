@@ -23,7 +23,7 @@
       cadiback-package =
         {
           stdenv,
-          fetchFromGitHub,
+          cmake,
           git,
           cadical,
         }:
@@ -32,42 +32,22 @@
           src = fs.toSource {
             root = ./.;
             fileset = fs.unions [
-              ./configure
-              ./makefile.in
+              ./CMakeLists.txt
+              ./config.hpp.in
               ./test
-              ./include/cadiback.h
+              ./include
               ./cadiback.cpp
               ./main.cpp
-              ./generate
               ./VERSION
             ];
           };
 
-          nativeBuildInputs = [ git ];
+          nativeBuildInputs = [ cmake git ];
           buildInputs = [ cadical ];
 
-          patchPhase = ''
-            substituteInPlace makefile.in \
-              --replace-fail "/usr/" "$out/" \
-              --replace-fail "../cadical" "${cadical}"
-            substituteInPlace generate \
-              --replace-fail ${lib.escapeShellArg ''[ -d .git ] || die "could not find '.git' directory"''} "" \
-              --replace-fail ${lib.escapeShellArg "`git show|head -1|awk '{print $2}'`"} ${nixpkgs.rev}
-            cat generate
-          '';
-          configurePhase = ''
-            export CADICAL=${cadical}
-            ./configure
-          '';
-
-          preInstall = ''
-            mkdir -p $out/lib
-            mkdir -p $out/include
-            mkdir -p $out/bin
-          '';
-          postInstall = ''
-            cp cadiback $out/bin/cadiback
-          '';
+          cmakeFlags = [
+            "-Dcadical_DIR=${cadical}"
+          ];
         };
 
     in
