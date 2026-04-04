@@ -31,14 +31,14 @@ jobs:
     - name: Build cadical
       run: |
         cd cadical
-        CXX="ccache g++" CXXFLAGS=-fPIC ./configure --competition
-        make -j$(nproc)
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        cmake --build build -j8
 
     - name: Build cadiback
       run: |
         cd cadiback
-        CXX="ccache g++" CXXFLAGS=-fPIC ./configure --release
-        make -j$(nproc)
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        cmake --build build -j8
 
     - name: Determine artifact suffix
       id: suffix
@@ -51,8 +51,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: cadiback-${{ steps.suffix.outputs.suffix }}
-        path: |
-          cadiback/libcadiback.a
-          cadiback/libcadiback.so
-          cadiback/cadiback
+        path: cadiback/build/libcadiback.a
         if-no-files-found: error
