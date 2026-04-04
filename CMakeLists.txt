@@ -34,10 +34,6 @@ if(NOT TARGET cadical)
     if(cadical_DIR)
         find_package(cadical CONFIG REQUIRED HINTS "${cadical_DIR}")
         message(STATUS "CaDiCaL: using pre-built at ${cadical_DIR}")
-    elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../cadical/CMakeLists.txt")
-        add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../cadical"
-                         "${CMAKE_CURRENT_BINARY_DIR}/cadical-build")
-        message(STATUS "CaDiCaL: using sibling repo")
     else()
         FetchContent_Declare(cadical
             GIT_REPOSITORY https://github.com/meelgroup/cadical
@@ -73,7 +69,9 @@ install(TARGETS cadiback EXPORT cadibackTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 # Export for build-tree usage (lets dependents point CMAKE_PREFIX_PATH at build/)
-export(EXPORT cadibackTargets
+# Use export(TARGETS ...) rather than export(EXPORT ...) so the file is written
+# immediately at configure time (export(EXPORT) defers to the generate phase).
+export(TARGETS cadiback
     FILE "${CMAKE_CURRENT_BINARY_DIR}/cadibackTargets.cmake")
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/cadiback"
@@ -81,8 +79,8 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/"
 install(EXPORT cadibackTargets
     FILE cadibackTargets.cmake
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/cadiback")
-file(GENERATE
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cadibackConfig.cmake"
-    CONTENT "include(\"\${CMAKE_CURRENT_LIST_DIR}/cadibackTargets.cmake\")\n")
+# Minimal Config file — just imports the targets
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/cadibackConfig.cmake"
+    "include(\"\${CMAKE_CURRENT_LIST_DIR}/cadibackTargets.cmake\")\n")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/cadibackConfig.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/cadiback")
