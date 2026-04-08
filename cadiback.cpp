@@ -82,6 +82,12 @@ class CadiBackInt {
 // Verbosity level: -1=quiet, 0=default, 1=verbose, INT_MAX=logging.
 int verbosity = 0;
 
+// Conflict limit: -1 means unlimited.
+int64_t max_confl = -1;
+
+// Set to true if the conflict limit was hit during backbone search.
+bool limit_hit = false;
+
 // backbone literals found
 std::vector<int> backbones_found;
 
@@ -457,12 +463,24 @@ int solve () {
   } else if (verbosity > 0)
     msg ("SAT solver call %zu (%d candidates remain %0.f%%)",
          statistics.calls.total, remain, percent (remain, vars));
+  if (max_confl >= 0) {
+    int64_t used = solver->get ("conflicts");
+    int64_t remaining = max_confl - used;
+    if (remaining <= 0) {
+      limit_hit = true;
+      stop_timer ();
+      return 0;
+    }
+    solver->limit ("conflicts", (int) std::min (remaining, (int64_t) INT_MAX));
+  }
   int res = solver->solve ();
   if (res == 10) {
     statistics.calls.sat++;
-  } else {
-    assert (res == 20);
+  } else if (res == 20) {
     statistics.calls.unsat++;
+  } else {
+    // res == 0: conflict limit hit
+    limit_hit = true;
   }
   double delta = stop_timer ();
   if (statistics.calls.total == 1)
@@ -1062,8 +1080,11 @@ int doit (const std::vector<int>& cnf,
     std::vector<int>& drop_cands,
     std::vector<int>& ret_backbone,
     std::vector<int>& ret_red_cls,
-    std::vector<std::pair<int, int>>& ret_eqlits) {
+    std::vector<std::pair<int, int>>& ret_eqlits,
+    int64_t _max_confl,
+    bool* _limit_hit) {
   verbosity = _verb-1;
+  max_confl = _max_confl;
   msg ("CadiBack BackBone Extractor");
   msg ("Copyright (c) 2023 Armin Biere University of Freiburg");
   msg ("Version " VERSION " " GITID);
@@ -1340,6 +1361,7 @@ int doit (const std::vector<int>& cnf,
               solver->assume (core[i]);
 
             int tmp = solve ();
+            if (limit_hit) { assumed = 0; break; }
             if (tmp == 10) {
 
               dbg ("all %d negatively assumed backbone candidates "
@@ -1394,6 +1416,8 @@ int doit (const std::vector<int>& cnf,
             dbg ("reducing core assumptions to complement of size %d",
                  remain);
           }
+
+          if (limit_hit) break;
 
           if (progress) {
 
@@ -1485,6 +1509,7 @@ int doit (const std::vector<int>& cnf,
           }
 
           last = solve ();
+          if (limit_hit) break;
           if (last == 10) {
             dbg ("constraining negation of %d backbones candidates "
                  "starting with variable %d all-at-once produced model",
@@ -1524,6 +1549,7 @@ int doit (const std::vector<int>& cnf,
         dbg ("assuming negation %d of backbone candidate %d", -lit, lit);
         solver->assume (-lit);
         last = solve ();
+        if (limit_hit) break;
         if (last == 10) {
           dbg ("found model satisfying single assumed "
                "negation %d of backbone candidate %d",
@@ -1618,6 +1644,7 @@ int doit (const std::vector<int>& cnf,
   msg ("exit %d", res);
 
   ret_backbone = backbones_found;
+  if (_limit_hit) *_limit_hit = limit_hit;
   return res;
 }
 
@@ -1628,10 +1655,13 @@ int doit (const std::vector<int>& cnf,
     std::vector<int>& drop_cands,
     std::vector<int>& ret_backbone,
     std::vector<int>& ret_red_cls,
-    std::vector<std::pair<int, int>>& ret_eqlits) {
+    std::vector<std::pair<int, int>>& ret_eqlits,
+    int64_t max_confl,
+    bool* limit_hit) {
   CadiBackInt cb;
   return cb.doit (cnf, _verb, drop_cands,
-      ret_backbone, ret_red_cls, ret_eqlits);
+      ret_backbone, ret_red_cls, ret_eqlits,
+      max_confl, limit_hit);
 }
 
 
