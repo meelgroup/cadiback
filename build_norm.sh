@@ -1,9 +1,20 @@
 #!/bin/bash
 set -e
-rm -rf build
-SAT_DIR=$(cd .. && pwd)
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+rm -rf .cmake
+rm -rf lib*
+rm -rf Test*
+rm -rf tests*
+rm -rf include
+rm -rf tests
+rm -rf approxmc*
+rm -rf apx-src
+rm -rf CM*
+rm -rf cmake*
+rm -rf deps
+rm -rf _deps
+SAT_DIR=$(cd ../.. && pwd)
+cmake -S .. -B . -DCMAKE_BUILD_TYPE=Release \
   -Dcadical_DIR="${SAT_DIR}/cadical/build" \
   -DCMAKE_INSTALL_PREFIX="$(pwd)/build"
-cmake --build build -j$(nproc)
-cmake --install build
+cmake --build . -j$(nproc)
+cmake --install .
