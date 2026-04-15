@@ -15,6 +15,6 @@ rm -rf _deps
 SAT_DIR=$(cd ../.. && pwd)
 cmake -S .. -B . -DCMAKE_BUILD_TYPE=Release \
   -Dcadical_DIR="${SAT_DIR}/cadical/build" \
-  -DCMAKE_INSTALL_PREFIX="$(pwd)/build"
+  -DCMAKE_INSTALL_PREFIX="$(pwd)"
 cmake --build . -j$(nproc)
 cmake --install .
