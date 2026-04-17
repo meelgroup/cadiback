@@ -12,7 +12,7 @@ rm -rf CM*
 rm -rf cmake*
 rm -rf deps
 rm -rf _deps
-SAT_DIR=$(cd .. && pwd)
+SAT_DIR=$(cd ../.. && pwd)
 cmake -S .. -B . -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \
   -Dcadical_DIR=${SAT_DIR}/cadical/build \
   -DCMAKE_INSTALL_PREFIX="$(pwd)"
