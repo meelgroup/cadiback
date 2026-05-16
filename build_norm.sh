@@ -13,7 +13,7 @@ rm -rf cmake*
 rm -rf deps
 rm -rf _deps
 SAT_DIR=$(cd ../.. && pwd)
-cmake -S .. -B . -DCMAKE_BUILD_TYPE=Release \
+cmake -S .. -B . -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -Dcadical_DIR="${SAT_DIR}/cadical/build" \
   -DCMAKE_INSTALL_PREFIX="$(pwd)"
 cmake --build . -j$(nproc)
