@@ -7,11 +7,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1775299191,
-        "narHash": "sha256-JbWqBdKHwKrckPsW00HyaVEMUjYKN5ixQ+dCHnCHRkY=",
+        "lastModified": 1776409672,
+        "narHash": "sha256-twYfbFqAAIP+du86ti9xm3ccXyHU5Nh8ObzzRBS2/Dg=",
         "owner": "meelgroup",
         "repo": "cadical",
-        "rev": "1652f668becc717eb14c184a727864c1937082d6",
+        "rev": "3e2f46a0116b70364370f59205a5f4187390a62a",
         "type": "github"
       },
       "original": {
