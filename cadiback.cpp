@@ -1664,5 +1664,5 @@ int doit (const std::vector<int>& cnf,
       max_confl, limit_hit);
 }
 
-
+const char* get_version_sha1() { return GITID; }
 }

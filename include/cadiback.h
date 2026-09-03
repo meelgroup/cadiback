@@ -11,4 +11,6 @@ int doit (const std::vector<int>& cnf,
     std::vector<std::pair<int, int>>& ret_eqlits,
     int64_t max_confl = -1,
     bool* limit_hit = nullptr);
+
+const char* get_version_sha1();
 }
