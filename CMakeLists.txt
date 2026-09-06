@@ -105,6 +105,10 @@ target_compile_definitions(cadiback PRIVATE
 # public headers (cadical.hpp, resources.hpp, version.hpp from src/).
 target_link_libraries(cadiback PUBLIC cadical)
 
+add_executable(cadiback-cli main.cpp)
+target_link_libraries(cadiback-cli PRIVATE cadiback)
+target_compile_features(cadiback-cli PRIVATE cxx_std_17)
+
 # ---- Install / cmake package export ----
 include(GNUInstallDirs)
 install(TARGETS cadiback EXPORT cadibackTargets
