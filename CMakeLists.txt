@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.18)
 project(cadiback LANGUAGES CXX)
 
+option(BUILD_SHARED_LIBS "Build the shared library" ON)
+
 # ---- Compiler flags (only added if the compiler accepts them) ----
 include(CheckCXXCompilerFlag)
 macro(add_cxx_flag_if_supported flagname)
@@ -12,7 +14,7 @@ macro(add_cxx_flag_if_supported flagname)
 endmacro()
 
 if(NOT WIN32)
-    if(NOT ENABLE_TESTING AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    if(NOT ENABLE_TESTING AND NOT BUILD_SHARED_LIBS AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux")
         add_cxx_flag_if_supported("-fvisibility=hidden")
     endif()
 
@@ -86,9 +88,13 @@ if(NOT TARGET cadical)
     endif()
 endif()
 
-add_library(cadiback STATIC cadiback.cpp)
+add_library(cadiback cadiback.cpp)
 
-set_target_properties(cadiback PROPERTIES POSITION_INDEPENDENT_CODE ON)
+string(REGEX MATCH "^[0-9]+" CADIBACK_VERSION_MAJOR "${CADIBACK_VERSION}")
+set_target_properties(cadiback PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    VERSION ${CADIBACK_VERSION}
+    SOVERSION ${CADIBACK_VERSION_MAJOR})
 
 # Public API header is in include/; config.hpp is in the build directory.
 target_include_directories(cadiback
@@ -112,7 +118,9 @@ target_compile_features(cadiback-cli PRIVATE cxx_std_17)
 # ---- Install / cmake package export ----
 include(GNUInstallDirs)
 install(TARGETS cadiback EXPORT cadibackTargets
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # Export for build-tree usage (lets dependents point CMAKE_PREFIX_PATH at build/)
 # Use export(TARGETS ...) rather than export(EXPORT ...) so the file is written

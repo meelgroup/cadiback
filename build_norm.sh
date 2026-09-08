@@ -2,6 +2,7 @@
 set -e
 rm -rf .cmake
 rm -rf lib*
+rm -f *.a *.so*
 rm -rf Test*
 rm -rf tests*
 rm -rf include
@@ -13,7 +14,7 @@ rm -rf cmake*
 rm -rf deps
 rm -rf _deps
 SAT_DIR=$(cd ../.. && pwd)
-cmake -S .. -B . -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+cmake -S .. -B . -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=ON \
   -Dcadical_DIR="${SAT_DIR}/cadical/build" \
   -DCMAKE_INSTALL_PREFIX="$(pwd)"
 cmake --build . -j$(nproc)
