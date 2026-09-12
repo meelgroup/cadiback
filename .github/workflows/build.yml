@@ -19,25 +19,13 @@ jobs:
       with:
         path: cadiback
 
-    - name: Checkout cadical
-      uses: actions/checkout@v4
-      with:
-        repository: meelgroup/cadical
-        path: cadical
-
     - name: Set up ccache
       uses: hendrikmuhs/ccache-action@v1
-
-    - name: Build cadical
-      run: |
-        cd cadical
-        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_POSITION_INDEPENDENT_CODE=ON
-        cmake --build build -j8
 
     - name: Build cadiback
       run: |
         cd cadiback
-        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DBUILD_SHARED_LIBS=OFF
         cmake --build build -j8
 
     - name: Determine artifact suffix
