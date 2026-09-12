@@ -14,6 +14,7 @@
 // Include the main 'CaDiCaL' API from 'cadical.hpp', but also some helper
 // code from its library (from the 'CaDiCaL' source code directory').
 
+#include "cadiback.h"
 #include "cadical.hpp"   // Main 'CaDiCaL' API.
 #include "resources.hpp" // Get time and memory usage.
 #include "version.hpp"   // Print 'CaDiCaL' version too.
