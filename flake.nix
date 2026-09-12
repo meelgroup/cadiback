@@ -33,6 +33,7 @@
             root = ./.;
             fileset = fs.unions [
               ./CMakeLists.txt
+              ./cmake
               ./config.hpp.in
               ./test
               ./include

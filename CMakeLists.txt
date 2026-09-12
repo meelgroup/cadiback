@@ -49,21 +49,8 @@ endif()
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" CADIBACK_VERSION)
 string(STRIP "${CADIBACK_VERSION}" CADIBACK_VERSION)
 
-find_package(Git QUIET)
-if(Git_FOUND)
-    execute_process(
-        COMMAND "${GIT_EXECUTABLE}" rev-parse HEAD
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        OUTPUT_VARIABLE CADIBACK_GITID
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
-        RESULT_VARIABLE _git_result)
-    if(NOT _git_result EQUAL 0)
-        set(CADIBACK_GITID "unknown")
-    endif()
-else()
-    set(CADIBACK_GITID "unknown")
-endif()
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/GetGitSHA1.cmake")
+get_git_sha1(CADIBACK_GITID)
 set(CADIBACK_BUILD "${CMAKE_CXX_COMPILER}")
 
 configure_file(
