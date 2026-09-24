@@ -83,6 +83,9 @@ class CadiBackInt {
 // Verbosity level: -1=quiet, 0=default, 1=verbose, INT_MAX=logging.
 int verbosity = 0;
 
+// Printed at the start of every stdout line.
+std::string prefix = "c o ";
+
 // Conflict limit: -1 means unlimited.
 int64_t max_confl = -1;
 
@@ -257,7 +260,7 @@ bool is_unsat = false;
 void msg (const char *fmt, ...) {
   if (verbosity < 0)
     return;
-  fputs ("c o ", stdout);
+  fputs (prefix.c_str (), stdout);
   va_list ap;
   va_start (ap, fmt);
   vprintf (fmt, ap);
@@ -269,7 +272,8 @@ void msg (const char *fmt, ...) {
 void line () {
   if (verbosity < 0)
     return;
-  fputs ("c o\n", stdout);
+  fputs (prefix.c_str (), stdout);
+  fputc ('\n', stdout);
   fflush (stdout);
 }
 
@@ -286,7 +290,8 @@ void die (const char *fmt, ...) {
 void dbg (const char *fmt, ...) {
   if (verbosity < INT_MAX)
     return;
-  fputs ("c CADIBACK ", stdout);
+  fputs (prefix.c_str (), stdout);
+  fputs ("CADIBACK ", stdout);
   va_list ap;
   va_start (ap, fmt);
   vprintf (fmt, ap);
@@ -330,7 +335,7 @@ double stop_timer () {
 void print_statistics () {
   if (verbosity < 0)
     return;
-  solver->prefix ("c o ");
+  solver->prefix (prefix.c_str ());
   double total_time = time ();
   double *timer = started;
   if (started) {
@@ -340,94 +345,94 @@ void print_statistics () {
       unknown_time += delta;
     }
   }
-  printf ("c o\n");
-  printf ("c o --- [ backbone statistics ] ");
-  printf ("------------------------------------------------\n");
-  printf ("c o\n");
-  printf ("c o found         %9zu backbones     %3.0f%%\n",
+  line ();
+  msg ("--- [ backbone statistics ] "
+       "------------------------------------------------");
+  line ();
+  msg ("found         %9zu backbones     %3.0f%%",
           statistics.backbones, percent (statistics.backbones, vars));
-  printf ("c o dropped       %9zu candidates    %3.0f%%\n",
+  msg ("dropped       %9zu candidates    %3.0f%%",
           statistics.dropped, percent (statistics.dropped, vars));
-  printf ("c o\n");
-  printf ("c o filtered      %9zu candidates    %3.0f%%\n",
+  line ();
+  msg ("filtered      %9zu candidates    %3.0f%%",
           statistics.filtered, percent (statistics.filtered, vars));
 #ifndef NFLIP
-  printf ("c o flippable     %9zu candidates    %3.0f%%\n",
+  msg ("flippable     %9zu candidates    %3.0f%%",
           statistics.flippable, percent (statistics.flippable, vars));
-  printf ("c o flipped       %9zu candidates    %3.0f%%\n",
+  msg ("flipped       %9zu candidates    %3.0f%%",
           statistics.flipped, percent (statistics.flipped, vars));
 #endif
-  printf ("c o fixed         %9zu candidates    %3.0f%%\n", statistics.fixed,
+  msg ("fixed         %9zu candidates    %3.0f%%", statistics.fixed,
           percent (statistics.fixed, vars));
-  printf ("c o core          %9zu candidates    %3.0f%%\n", statistics.core,
+  msg ("core          %9zu candidates    %3.0f%%", statistics.core,
           percent (statistics.core, vars));
-  printf ("c o found         %9zu big_backbone %3.0f%%\n",
+  msg ("found         %9zu big_backbone %3.0f%%",
           statistics.big_backbones,
           percent (statistics.big_backbones, statistics.backbones));
-  printf ("c o failed        %9zu candidates    %3.0f%%\n", statistics.failed,
+  msg ("failed        %9zu candidates    %3.0f%%", statistics.failed,
           percent (statistics.failed, vars));
-  printf ("c o\n");
-  printf ("c o called solver %9zu times         %3.0f%%\n",
+  line ();
+  msg ("called solver %9zu times         %3.0f%%",
           statistics.calls.total,
           percent (statistics.calls.total, vars + 1));
-  printf ("c o satisfiable   %9zu times         %3.0f%%\n",
+  msg ("satisfiable   %9zu times         %3.0f%%",
           statistics.calls.sat,
           percent (statistics.calls.sat, statistics.calls.total));
-  printf ("c o unsatisfiable %9zu times         %3.0f%%\n",
+  msg ("unsatisfiable %9zu times         %3.0f%%",
           statistics.calls.unsat,
           percent (statistics.calls.unsat, statistics.calls.total));
-  printf ("c o\n");
-  printf ("c o --- [ backbone profiling ] ");
-  printf ("-------------------------------------------------\n");
-  printf ("c o\n");
+  line ();
+  msg ("--- [ backbone profiling ] "
+       "-------------------------------------------------");
+  line ();
   if (always_print_statistics || verbosity > 0 || first_time)
-    printf ("c o   %10.2f %6.2f %% first\n", first_time,
+    msg ("  %10.2f %6.2f %% first", first_time,
             percent (first_time, total_time));
   if (verbosity > 0 || sat_time)
-    printf ("c o   %10.2f %6.2f %% sat\n", sat_time,
+    msg ("  %10.2f %6.2f %% sat", sat_time,
             percent (sat_time, total_time));
   if (verbosity > 0 || unsat_time)
-    printf ("c o   %10.2f %6.2f %% unsat\n", unsat_time,
+    msg ("  %10.2f %6.2f %% unsat", unsat_time,
             percent (unsat_time, total_time));
   if (verbosity > 0 || satmax_time)
-    printf ("c o   %10.2f %6.2f %% satmax\n", satmax_time,
+    msg ("  %10.2f %6.2f %% satmax", satmax_time,
             percent (satmax_time, total_time));
   if (verbosity > 0 || unsatmax_time)
-    printf ("c o   %10.2f %6.2f %% unsatmax\n", unsatmax_time,
+    msg ("  %10.2f %6.2f %% unsatmax", unsatmax_time,
             percent (unsatmax_time, total_time));
   if (verbosity > 0 || unknown_time)
-    printf ("c o   %10.2f %6.2f %% unknown\n", unknown_time,
+    msg ("  %10.2f %6.2f %% unknown", unknown_time,
             percent (unknown_time, total_time));
   if (verbosity > 0 || solving_time)
-    printf ("c o   %10.2f %6.2f %% solving\n", solving_time,
+    msg ("  %10.2f %6.2f %% solving", solving_time,
             percent (solving_time, total_time));
   if (verbosity > 0 || flip_time)
-    printf ("c o   %10.2f %6.2f %% flip\n", flip_time,
+    msg ("  %10.2f %6.2f %% flip", flip_time,
             percent (flip_time, total_time));
 
   if (big && (verbosity > 0 || big_read_time))
-    printf ("c o   %10.2f %6.2f %% big_read\n", big_read_time,
+    msg ("  %10.2f %6.2f %% big_read", big_read_time,
             percent (big_read_time, total_time));
   if (big && (verbosity > 0 || big_els_time))
-    printf ("c o   %10.2f %6.2f %% big_no_els\n", big_els_time,
+    msg ("  %10.2f %6.2f %% big_no_els", big_els_time,
             percent (big_els_time, total_time));
   if (big && (verbosity > 0 || big_search_time))
-    printf ("c o   %10.2f %6.2f %% big_search\n", big_search_time,
+    msg ("  %10.2f %6.2f %% big_search", big_search_time,
             percent (big_search_time, total_time));
   if (big && (verbosity > 0 || big_extension_time))
-    printf ("c o   %10.2f %6.2f %% big_extension\n", big_extension_time,
+    msg ("  %10.2f %6.2f %% big_extension", big_extension_time,
             percent (big_extension_time, total_time));
   if (big && (verbosity > 0 || big_check_time))
-    printf ("c o   %10.2f %6.2f %% big_check\n", big_check_time,
+    msg ("  %10.2f %6.2f %% big_check", big_check_time,
             percent (big_check_time, total_time));
 
   if (verbosity > 0 || check_time)
-    printf ("c o   %10.2f %6.2f %% check\n", check_time,
+    msg ("  %10.2f %6.2f %% check", check_time,
             percent (check_time, total_time));
-  printf ("c o ====================================\n");
-  printf ("c o   %10.2f 100.00 %% total\n", (total_time - cadiback_start));
-  printf ("c o\n");
-  printf ("c o\n");
+  msg ("====================================");
+  msg ("  %10.2f 100.00 %% total", (total_time - cadiback_start));
+  line ();
+  line ();
   fflush (stdout);
   if (!solver)
     return;
@@ -449,9 +454,7 @@ int solve () {
   start_timer (&solving_time);
   statistics.calls.total++;
   {
-    char prefix[32];
-    snprintf (prefix, sizeof prefix, "c o #%zu ", statistics.calls.total);
-    solver->prefix (prefix);
+    solver->prefix ((prefix + "#" + std::to_string (statistics.calls.total) + " ").c_str ());
   }
   int remain = remaining_candidates ();
   if (report || verbosity > 1) {
@@ -507,9 +510,7 @@ int solve () {
 void inc_checked () {
   assert (checker);
   statistics.checked++;
-  char prefix[32];
-  snprintf (prefix, sizeof prefix, "c o C%zu ", statistics.checked);
-  checker->prefix (prefix);
+  checker->prefix ((prefix + "C" + std::to_string (statistics.checked) + " ").c_str ());
 }
 
 void check_model (int lit) {
@@ -1083,8 +1084,10 @@ int doit (const std::vector<int>& cnf,
     std::vector<int>& ret_red_cls,
     std::vector<std::pair<int, int>>& ret_eqlits,
     int64_t _max_confl,
-    bool* _limit_hit) {
+    bool* _limit_hit,
+    const std::string& _prefix) {
   verbosity = _verb-1;
+  prefix = _prefix;
   max_confl = _max_confl;
   msg ("CadiBack BackBone Extractor");
   msg ("Copyright (c) 2023 Armin Biere University of Freiburg");
@@ -1628,13 +1631,14 @@ int doit (const std::vector<int>& cnf,
     MyIter iter (ret_red_cls);
     solver->traverse_red_clauses(iter);
     if (verbosity >= 4) {
-      std::cout << "c o red bin cls below" << std::endl;
+      msg ("red bin cls below");
+      std::string cl;
       for(const auto& l: ret_red_cls) {
+        cl += std::to_string (l);
         if (l == 0) {
-          std::cout << "0" << std::endl;
-          continue;
-        }
-        std::cout << l << " ";
+          msg ("%s", cl.c_str ());
+          cl.clear ();
+        } else cl += " ";
       }
     }
     ret_eqlits = solver->get_eqiv_lits();
@@ -1658,11 +1662,12 @@ int doit (const std::vector<int>& cnf,
     std::vector<int>& ret_red_cls,
     std::vector<std::pair<int, int>>& ret_eqlits,
     int64_t max_confl,
-    bool* limit_hit) {
+    bool* limit_hit,
+    const std::string& prefix) {
   CadiBackInt cb;
   return cb.doit (cnf, _verb, drop_cands,
       ret_backbone, ret_red_cls, ret_eqlits,
-      max_confl, limit_hit);
+      max_confl, limit_hit, prefix);
 }
 
 const char* get_version_sha1() { return GITID; }

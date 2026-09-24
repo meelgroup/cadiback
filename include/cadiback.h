@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #if defined _WIN32
@@ -21,7 +22,8 @@ CADIBACK_API int doit (const std::vector<int>& cnf,
     std::vector<int>& ret_red_cls,
     std::vector<std::pair<int, int>>& ret_eqlits,
     int64_t max_confl = -1,
-    bool* limit_hit = nullptr);
+    bool* limit_hit = nullptr,
+    const std::string& prefix = "c o ");
 
 CADIBACK_API const char* get_version_sha1();
 }
