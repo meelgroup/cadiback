@@ -1670,5 +1670,18 @@ int doit (const std::vector<int>& cnf,
       max_confl, limit_hit, prefix);
 }
 
+int doit (const std::vector<int>& cnf,
+    const int _verb,
+    std::vector<int>& drop_cands,
+    std::vector<int>& ret_backbone,
+    std::vector<int>& ret_red_cls,
+    std::vector<std::pair<int, int>>& ret_eqlits,
+    int64_t max_confl,
+    bool* limit_hit) {
+  return doit (cnf, _verb, drop_cands,
+      ret_backbone, ret_red_cls, ret_eqlits,
+      max_confl, limit_hit, "c o ");
+}
+
 const char* get_version_sha1() { return GITID; }
 }

@@ -22,8 +22,19 @@ CADIBACK_API int doit (const std::vector<int>& cnf,
     std::vector<int>& ret_red_cls,
     std::vector<std::pair<int, int>>& ret_eqlits,
     int64_t max_confl = -1,
-    bool* limit_hit = nullptr,
-    const std::string& prefix = "c o ");
+    bool* limit_hit = nullptr);
+
+// Separate overload (not a defaulted parameter) so the symbol above keeps its
+// ABI. Every stdout line starts with prefix; the overload above uses "c o ".
+CADIBACK_API int doit (const std::vector<int>& cnf,
+    int _verb,
+    std::vector<int>& drop_cands,
+    std::vector<int>& ret_backbone,
+    std::vector<int>& ret_red_cls,
+    std::vector<std::pair<int, int>>& ret_eqlits,
+    int64_t max_confl,
+    bool* limit_hit,
+    const std::string& prefix);
 
 CADIBACK_API const char* get_version_sha1();
 }

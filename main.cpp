@@ -1,5 +1,5 @@
 // Runs CadiBack::doit() on a DIMACS file, standalone.
-// Usage: cadiback-cli [--verb N] [--maxconfl N] [--drop v1,v2,...] file.cnf
+// Usage: cadiback-cli [--verb N] [--maxconfl N] [--drop v1,v2,...] [--prefix STR] file.cnf
 
 #include <cstdio>
 #include <cstdlib>
@@ -53,11 +53,13 @@ int main(int argc, char** argv) {
     int verb = 1;
     int64_t max_confl = -1;
     std::vector<int> drop_cands;
+    std::string prefix = "c o ";
     const char* fname = nullptr;
 
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--verb") && i + 1 < argc) verb = atoi(argv[++i]);
         else if (!strcmp(argv[i], "--maxconfl") && i + 1 < argc) max_confl = atoll(argv[++i]);
+        else if (!strcmp(argv[i], "--prefix") && i + 1 < argc) prefix = argv[++i];
         else if (!strcmp(argv[i], "--drop") && i + 1 < argc) {
             for (const char* p = argv[++i]; *p; ) {
                 char* end;
@@ -76,21 +78,21 @@ int main(int argc, char** argv) {
 
     size_t num_cls = 0, num_lits = 0;
     for (const int l : cnf) { if (l == 0) num_cls++; else num_lits++; }
-    printf("c o [cadiback-cli] %s -- vars: %d cls: %zu lits: %zu drop_cands: %zu maxconfl: %ld\n",
-           fname, vars, num_cls, num_lits, drop_cands.size(), (long)max_confl);
+    printf("%s[cadiback-cli] %s -- vars: %d cls: %zu lits: %zu drop_cands: %zu maxconfl: %ld\n",
+           prefix.c_str(), fname, vars, num_cls, num_lits, drop_cands.size(), (long)max_confl);
     fflush(stdout);
 
     std::vector<int> ret_backbone, ret_red_cls;
     std::vector<std::pair<int, int>> ret_eqlits;
     bool limit_hit = false;
     int res = CadiBack::doit(cnf, verb, drop_cands, ret_backbone, ret_red_cls,
-                             ret_eqlits, max_confl, &limit_hit);
+                             ret_eqlits, max_confl, &limit_hit, prefix);
 
     size_t num_bins = 0;
     for (const int l : ret_red_cls) if (l == 0) num_bins++;
     size_t num_units = 0;
     for (const int l : ret_backbone) if (l != 0) num_units++;
-    printf("c o [cadiback-cli] res: %d units: %zu bins: %zu eqlits: %zu limit_hit: %d\n",
-           res, num_units, num_bins, ret_eqlits.size(), (int)limit_hit);
+    printf("%s[cadiback-cli] res: %d units: %zu bins: %zu eqlits: %zu limit_hit: %d\n",
+           prefix.c_str(), res, num_units, num_bins, ret_eqlits.size(), (int)limit_hit);
     return 0;
 }
