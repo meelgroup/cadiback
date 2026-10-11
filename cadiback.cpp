@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <numeric>
+#include <cinttypes>
 #include <set>
 
 // Include the main 'CaDiCaL' API from 'cadical.hpp', but also some helper
@@ -224,12 +225,24 @@ struct {
   size_t failed = 0;        // Failed literals during core based approach.
   size_t core = 0;          // Set by core based approach.
   size_t big_backbones = 0; // Number of backbones found.
+  size_t unused = 0;        // Dropped up front: in no clause.
+  size_t predropped = 0;    // Dropped up front: by the caller.
+  size_t refuted = 0;       // Dropped as the model of a call demanded it.
   struct {
     size_t sat = 0;     // Calls with result SAT to SAT solver.
     size_t unsat = 0;   // Calls with result UNSAT to SAT solver.
     size_t unknown = 0; // Interrupted solver calls.
     size_t total = 0;   // Calls to SAT solver.
+    // By what was asked: one candidate assumed, or a constraint over many.
+    size_t single_sat = 0, single_unsat = 0;
+    size_t constrain_sat = 0, constrain_unsat = 0;
   } calls;
+  struct {
+    int64_t first = 0; // Conflicts of the call finding the first model.
+    int64_t sat = 0;   // Conflicts in calls with result SAT.
+    int64_t unsat = 0; // Conflicts in calls with result UNSAT.
+    int64_t max = 0;   // Most conflicts in one call.
+  } conflicts;
 #ifndef NFLIP
   size_t flipped = 0;   // How often 'solver->flip (lit)' succeeded.
   size_t flippable = 0; // How often 'solver->flip (lit)' succeeded.
@@ -254,6 +267,9 @@ double big_extension_time = 0;
 double *started = nullptr;
 double start_time = 0;
 double cadiback_start = 0;
+int progress_step = 0; // 10% of the candidates left after the first model.
+int progress_next = 0; // Report once this few candidates remain.
+enum { FIRST_CALL, SINGLE_CALL, CONSTRAIN_CALL, CORE_CALL } call_kind = FIRST_CALL;
 bool is_unsat = false;
 
 // Actual message printing code starts here.
@@ -332,6 +348,33 @@ double stop_timer () {
   return delta;
 }
 
+// One line whenever another 10% of the candidates got decided, and at every
+// call whose number is a power of two, so that a run killed by a timeout
+// still shows where the time went.  Never time based: must be reproducible.
+
+void print_progress () {
+  const int remain = remaining_candidates ();
+  const size_t calls = statistics.calls.total;
+  const bool power_of_two = calls >= 16 && !(calls & (calls - 1));
+  if (remain > progress_next && !power_of_two)
+    return;
+  while (progress_next >= remain && progress_next > 0)
+    progress_next -= std::max (1, progress_step);
+  const double now = time ();
+  msg ("[progress] T: %.0f calls: %zu sat: %zu unsat: %zu"
+       " | left: %d backbones: %zu"
+       " | dropped by flip: %zu filter: %zu refuted: %zu fixed: %zu"
+       " | confl sat: %" PRId64 " unsat: %" PRId64 " max: %" PRId64
+       " | T sat: %.0f unsat: %.0f flip: %.0f satmax: %.1f unsatmax: %.1f"
+       " | active: %d",
+       now - cadiback_start, statistics.calls.total, statistics.calls.sat,
+       statistics.calls.unsat, remaining_candidates (), statistics.backbones,
+       statistics.flippable + statistics.flipped, statistics.filtered,
+       statistics.refuted, statistics.fixed, statistics.conflicts.sat,
+       statistics.conflicts.unsat, statistics.conflicts.max, sat_time,
+       unsat_time, flip_time, satmax_time, unsatmax_time, solver->active ());
+}
+
 void print_statistics () {
   if (verbosity < 0)
     return;
@@ -354,6 +397,12 @@ void print_statistics () {
   msg ("dropped       %9zu candidates    %3.0f%%",
           statistics.dropped, percent (statistics.dropped, vars));
   line ();
+  msg ("unused        %9zu candidates    %3.0f%%",
+          statistics.unused, percent (statistics.unused, vars));
+  msg ("predropped    %9zu candidates    %3.0f%%",
+          statistics.predropped, percent (statistics.predropped, vars));
+  msg ("refuted       %9zu candidates    %3.0f%%",
+          statistics.refuted, percent (statistics.refuted, vars));
   msg ("filtered      %9zu candidates    %3.0f%%",
           statistics.filtered, percent (statistics.filtered, vars));
 #ifndef NFLIP
@@ -381,6 +430,23 @@ void print_statistics () {
   msg ("unsatisfiable %9zu times         %3.0f%%",
           statistics.calls.unsat,
           percent (statistics.calls.unsat, statistics.calls.total));
+  msg ("single        %9zu sat %9zu unsat",
+          statistics.calls.single_sat, statistics.calls.single_unsat);
+  msg ("constrain     %9zu sat %9zu unsat",
+          statistics.calls.constrain_sat, statistics.calls.constrain_unsat);
+  msg ("dropped       %9.1f candidates per satisfiable call",
+          average (statistics.refuted + statistics.filtered +
+                       statistics.flippable + statistics.flipped,
+                   statistics.calls.sat));
+  line ();
+  msg ("conflicts     %9" PRId64 " first call", statistics.conflicts.first);
+  msg ("conflicts     %9" PRId64 " satisfiable    %9.1f per call",
+          statistics.conflicts.sat,
+          average (statistics.conflicts.sat, statistics.calls.sat));
+  msg ("conflicts     %9" PRId64 " unsatisfiable  %9.1f per call",
+          statistics.conflicts.unsat,
+          average (statistics.conflicts.unsat, statistics.calls.unsat));
+  msg ("conflicts     %9" PRId64 " most in one call", statistics.conflicts.max);
   line ();
   msg ("--- [ backbone profiling ] "
        "-------------------------------------------------");
@@ -477,11 +543,25 @@ int solve () {
     }
     solver->limit ("conflicts", (int) std::min (remaining, (int64_t) INT_MAX));
   }
+  if (statistics.calls.total > 1)
+    print_progress ();
+  const int64_t conflicts_before = solver->conflicts ();
   int res = solver->solve ();
+  const int64_t conflicts = solver->conflicts () - conflicts_before;
+  if (conflicts > statistics.conflicts.max)
+    statistics.conflicts.max = conflicts;
+  if (call_kind == FIRST_CALL)
+    statistics.conflicts.first = conflicts;
   if (res == 10) {
     statistics.calls.sat++;
+    statistics.conflicts.sat += conflicts;
+    if (call_kind == SINGLE_CALL) statistics.calls.single_sat++;
+    if (call_kind == CONSTRAIN_CALL) statistics.calls.constrain_sat++;
   } else if (res == 20) {
     statistics.calls.unsat++;
+    statistics.conflicts.unsat += conflicts;
+    if (call_kind == SINGLE_CALL) statistics.calls.single_unsat++;
+    if (call_kind == CONSTRAIN_CALL) statistics.calls.constrain_unsat++;
   } else {
     // res == 0: conflict limit hit
     limit_hit = true;
@@ -679,6 +759,7 @@ int drop_first_candidate (int start) {
   dbg ("model satisfies negation %d "
        "of backbone candidate %d thus dropping %d",
        -lit, lit, lit);
+  statistics.refuted++;
   drop_candidate (idx);
   return idx;
 }
@@ -1138,8 +1219,11 @@ int doit (const std::vector<int>& cnf,
     // neither be flipped nor filtered, and costs a full SAT call to drop
     std::vector<char> no_cand (vars + 1, 1);
     for (const auto& l: cnf) no_cand[std::abs (l)] = 0;
+    for (int idx = 1; idx <= vars; idx++)
+      statistics.unused += no_cand[idx];
     for (const auto& v: drop_cands)
-      if (v >= 1 && v <= vars) no_cand[v] = 1;
+      if (v >= 1 && v <= vars && !no_cand[v])
+        no_cand[v] = 1, statistics.predropped++;
 
     if (big) {
       msg ("starting BIG search after %.2f seconds", time ());
@@ -1238,6 +1322,7 @@ int doit (const std::vector<int>& cnf,
     line ();
     cadiback_start = time ();
     msg ("starting solving after %.2f seconds", time ());
+    call_kind = FIRST_CALL;
     res = solve ();
     assert (res == 10 || res == 20);
 
@@ -1298,6 +1383,9 @@ int doit (const std::vector<int>& cnf,
         if (set_phase)
           solver->phase (-lit);
       }
+
+      progress_step = remaining_candidates () / 10;
+      progress_next = remaining_candidates () - progress_step;
 
       // Use first model to flip as many literals as possible which if
       // successful is cheaper than calling the SAT solver.
@@ -1369,6 +1457,7 @@ int doit (const std::vector<int>& cnf,
             for (int i = 0; i != assumed; i++)
               solver->assume (core[i]);
 
+            call_kind = CORE_CALL;
             int tmp = solve ();
             if (limit_hit) { assumed = 0; break; }
             if (tmp == 10) {
@@ -1517,6 +1606,7 @@ int doit (const std::vector<int>& cnf,
             solver->constrain (0);
           }
 
+          call_kind = CONSTRAIN_CALL;
           last = solve ();
           if (limit_hit) break;
           if (last == 10) {
@@ -1557,12 +1647,14 @@ int doit (const std::vector<int>& cnf,
 
         dbg ("assuming negation %d of backbone candidate %d", -lit, lit);
         solver->assume (-lit);
+        call_kind = SINGLE_CALL;
         last = solve ();
         if (limit_hit) break;
         if (last == 10) {
           dbg ("found model satisfying single assumed "
                "negation %d of backbone candidate %d",
                -lit, lit);
+          statistics.refuted++;
           drop_candidate (idx);
           filter_candidates (idx + 1);
           assert (!candidates[idx]);
