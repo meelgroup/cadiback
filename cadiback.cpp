@@ -1134,7 +1134,12 @@ int doit (const std::vector<int>& cnf,
       }
     }
     msg ("found %d variables", vars);
-    std::set<int> drop_cands_set(drop_cands.begin(), drop_cands.end());
+    // CaDiCaL's compact() unmaps a variable that is in no clause: it can then
+    // neither be flipped nor filtered, and costs a full SAT call to drop
+    std::vector<char> no_cand (vars + 1, 1);
+    for (const auto& l: cnf) no_cand[std::abs (l)] = 0;
+    for (const auto& v: drop_cands)
+      if (v >= 1 && v <= vars) no_cand[v] = 1;
 
     if (big) {
       msg ("starting BIG search after %.2f seconds", time ());
@@ -1275,14 +1280,14 @@ int doit (const std::vector<int>& cnf,
         int lit = solver->val (idx) < 0 ? -idx : idx; // Legacy support.
         assert (lit == idx || lit == -idx);
         if (!big) {
-          if (!drop_cands_set.count(idx)) {
+          if (!no_cand[idx]) {
             candidates[idx] = lit;
           } else {
             statistics.dropped++;
             candidates[idx] = 0;
           }
           fixed[idx] = 0;
-        } else if (fixed[idx] || drop_cands_set.count(idx)) {
+        } else if (fixed[idx] || no_cand[idx]) {
           candidates[idx] = 0;
         } else
           candidates[idx] = lit;
