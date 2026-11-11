@@ -25,6 +25,8 @@
 #include "config.hpp"
 namespace CadiBack {
 
+static std::vector<std::pair<std::string, int>> cadical_opts;
+
 int ind (int i) {
   assert (i);
   return (abs (i) << 1) - 1 - (i > 0);
@@ -1188,6 +1190,7 @@ int doit (const std::vector<int>& cnf,
          "(enable with '--check')");
 
   solver = new CaDiCaL::Solver ();
+  for (const auto& [name, val] : cadical_opts) solver->set (name.c_str (), val);
   if (verbosity < 0)
     solver->set ("quiet", 1);
   else if (verbosity > 2)
@@ -1778,6 +1781,14 @@ int doit (const std::vector<int>& cnf,
   return doit (cnf, _verb, drop_cands,
       ret_backbone, ret_red_cls, ret_eqlits,
       max_confl, limit_hit, "c o ");
+}
+
+bool set_cadical_option(const std::string& name, int val) {
+  if (!CaDiCaL::Solver::is_valid_option (name.c_str ())) return false;
+  for (auto& [n, v] : cadical_opts)
+    if (n == name) { v = val; return true; }
+  cadical_opts.emplace_back (name, val);
+  return true;
 }
 
 const char* get_version_sha1() { return GITID; }

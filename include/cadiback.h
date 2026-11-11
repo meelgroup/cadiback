@@ -36,5 +36,9 @@ CADIBACK_API int doit (const std::vector<int>& cnf,
     bool* limit_hit,
     const std::string& prefix);
 
+// Set a CaDiCaL option on the solver of every later doit() call, e.g.
+// ("lucky", 0). Returns false, and sets nothing, if CaDiCaL has no such option.
+CADIBACK_API bool set_cadical_option(const std::string& name, int val);
+
 CADIBACK_API const char* get_version_sha1();
 }
