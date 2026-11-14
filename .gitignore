@@ -4,3 +4,4 @@ compile_commands.json
 /build*
 /result
 /result-*
+build-wasm/

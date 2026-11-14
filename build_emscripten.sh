@@ -1,27 +1,14 @@
 #!/usr/bin/env bash
-
+# Builds cadiback for wasm in its own build-wasm/ (the native build/ stays) and
+# installs it into $EMINSTALL. Run from anywhere, after source ~/emscripten.sh.
 set -euo pipefail
-
-SAT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-echo "solvers dir: $SAT_DIR"
-rm -rf cm*
-rm -rf CM*
-rm -rf lib*
-rm -f *.a *.so*
-rm -rf Testing*
-rm -rf tests*
-rm -rf include
-rm -rf tests
-rm -rf utils
-rm -rf Make*
-rm -rf deps
-rm -rf _deps
-emcmake cmake -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_SHARED_LIBS=OFF \
-  -DCMAKE_INSTALL_PREFIX="${EMINSTALL}" \
-  -DENABLE_TESTING=OFF \
-  -Dcadical_DIR="${SAT_DIR}/cadical/build"  ..
-emmake make -j$(nproc)
+REPO="$(cd "$(dirname "$(readlink -f "$0")")/." && pwd)"
+SAT_DIR="$(cd "$REPO/.." && pwd)"
+mkdir -p "$REPO/build-wasm"
+cd "$REPO/build-wasm"
+emcmake cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \
+    -DCMAKE_INSTALL_PREFIX="${EMINSTALL}" -DENABLE_TESTING=OFF \
+    -Dcadical_DIR="${SAT_DIR}/cadical/build-wasm" \
+    "$REPO"
+emmake make -j"$(nproc)"
 emmake make install
-# cp cadiback.wasm "${SAT_DIR}/cadiback/html"
-# cp "${EMINSTALL}/bin/cadiback.js" "${SAT_DIR}/cadiback/html"
